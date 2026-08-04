@@ -1,4 +1,14 @@
+# ---------------- env ----------------
+
+import os
+from dotenv import load_dotenv
+
+# Загружаем переменные из .env
+load_dotenv()
+
+
 import asyncio
+from datetime import datetime
 
 # ---------------- AIROGRAM ----------------
 
@@ -29,14 +39,19 @@ from sqlalchemy import select
 
 # ---------------- НАСТРОЙКИ ----------------
 
-TOKEN = "ВАШ_ТОКЕН"
+TOKEN = os.getenv("BOT_TOKEN")
 
 # Строка подключения к PostgreSQL.
 # Формат:
 # postgresql+asyncpg://ПОЛЬЗОВАТЕЛЬ:ПАРОЛЬ@ХОСТ/БАЗА
 DATABASE_URL = (
-    "postgresql+asyncpg://postgres:123@localhost/telegram_bot")
-
+    f"postgresql+asyncpg://"
+    f"{os.getenv('DB_USER')}:"
+    f"{os.getenv('DB_PASSWORD')}@"
+    f"{os.getenv('DB_HOST')}:"
+    f"{os.getenv('DB_PORT')}/"
+    f"{os.getenv('DB_NAME')}"
+)
 # ---------------- ENGINE ----------------
 
 # Engine — это "двигатель" SQLAlchemy.
@@ -47,7 +62,7 @@ DATABASE_URL = (
 # Сам запросы Engine НЕ выполняет.
 engine = create_async_engine(
     DATABASE_URL,
-    echo=False)
+    echo=True)
 
 # ---------------- SESSION ----------------
 
@@ -86,7 +101,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String)
 
     # registration_date TIMESTAMP
-    registration_date: Mapped[DateTime]
+    registration_date: Mapped[datetime] = mapped_column(DateTime)
 
 
 # ---------------- BOT ----------------
@@ -131,7 +146,8 @@ async def start(message: Message):
             # только в памяти.
             new_user = User(
                 telegram_id=message.from_user.id,
-                username=message.from_user.username)
+                username=message.from_user.username,
+                registration_date=datetime.now())
             # Говорим SQLAlchemy:
             # "Подготовь объект к сохранению."
             session.add(new_user)
@@ -181,7 +197,6 @@ async def profile(message: Message):
 
 async def main():
     print("Бот запущен!")
-
     await dp.start_polling(bot)
 
 
